@@ -9,18 +9,18 @@ def evaluate(model, dataloader, criterion, num_classes):
     with torch.no_grad():  # Disable gradient calculation
         for inputs, labels in dataloader:
             inputs, labels = inputs.cuda(), labels.cuda()
-            # Define the mask for loss computation
-            mask = labels!=255
-            mask_expanded = mask.unsqueeze(1).expand(-1, num_classes, -1, -1)
+            
             outputs = model(inputs)
-            outputs_selected = outputs[mask_expanded].view(-1, num_classes)
-            labels_selected = labels[mask]
-            loss = criterion(outputs_selected, labels_selected)
+            loss = criterion(outputs, labels)
+            
             total_loss += loss.item()
 
-            predicted_selected = torch.argmax(outputs_selected, dim=1) #no need to have softmax applied earlier
+            _, predicted = torch.max(outputs, dim=1)
+            mask = labels!=20 #20 = new value for 255
+            labels_selected = labels[mask]
+            predicted_selected = predicted[mask]
+            correct += (predicted_selected == labels_selected).sum().item()  # Sum the correct predictions
             total += labels_selected.size(0)
-            correct += (predicted_selected == labels_selected).sum().item()
 
     avg_loss = total_loss / len(dataloader)
     accuracy = correct / total
